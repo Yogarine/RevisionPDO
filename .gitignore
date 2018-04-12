@@ -1,0 +1,15 @@
+/.idea/*
+!/.idea/codeStyleSettings.xml
+!/.idea/codeStyles
+!/.idea/dataSources.xml
+!/.idea/dataSources.local.xml
+!/.idea/dictionaries
+!/.idea/inspectionProfiles/Project_Default.xml
+!/.idea/jsLibraryMappings.xml
+!/.idea/modules.xml
+!/.idea/myparcel-core.iml
+!/.idea/php.xml
+!/.idea/sqldialects.xml
+!/.idea/vcs.xml
+
+/vendor
