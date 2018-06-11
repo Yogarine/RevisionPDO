@@ -1,6 +1,8 @@
 {
   "name": "yogarine/revision-pdo",
   "description": "RevisionPDO",
+  "type": "library",
+  "homepage": "https://bitbucket.org/Yogarine/revisionpdo",
   "minimum-stability": "dev",
   "prefer-stable": true,
   "license": "BSD-2-Clause",
@@ -13,6 +15,9 @@
   "require": {
     "php": ">=5.4.0",
     "greenlion/php-sql-parser": "^4.0.0"
+  },
+  "suggest": {
+    "yogarine/revision-pdo-laravel": "RevisionPDO integration for Laravel"
   },
   "autoload" : {
     "psr-0" : {

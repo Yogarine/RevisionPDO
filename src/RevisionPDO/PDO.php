@@ -33,6 +33,9 @@ class PDO extends \PDO
      */
     public function exec($statement)
     {
+        $parser = new PHPSQLParser();
+        $parsed = $parser->parse($statement);
+
         return $this->wrappee->exec($statement);
     }
 
@@ -48,11 +51,5 @@ class PDO extends \PDO
     ) {
 
         return $this->wrappee->prepare($statement, $driver_options);
-    }
-
-    public function bla($sql)
-    {
-        $parser = new PHPSQLParser();
-        $parsed = $parser->parse($sql);
     }
 }

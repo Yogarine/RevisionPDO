@@ -35,6 +35,7 @@ use ReflectionObject;
 
 /**
  * @author Alwin Garside <alwin@garsi.de>
+ * @deprecated
  */
 trait CastableTrait
 {
