@@ -20,7 +20,7 @@
   ],
   "require": {
     "php": ">=5.4.0",
-    "greenlion/php-sql-parser": "^4.2.0"
+    "greenlion/php-sql-parser": "dev-ansi_quotes"
   },
   "suggest": {
     "yogarine/revision-pdo-laravel": "RevisionPDO integration for Laravel"
