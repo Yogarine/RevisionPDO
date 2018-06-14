@@ -12,6 +12,12 @@
       "email": "alwin@garsi.de"
     }
   ],
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/Yogarine/PHP-SQL-Parser"
+    }
+  ],
   "require": {
     "php": ">=5.4.0",
     "greenlion/php-sql-parser": "^4.0.0"
