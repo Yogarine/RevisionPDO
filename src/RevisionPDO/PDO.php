@@ -110,8 +110,7 @@ class PDO extends \PDO
         $statement, /** @noinspection PhpSignatureMismatchDuringInheritanceInspection */
         $driver_options = []
     ) {
-
-        return $this->pdo->prepare($statement, $driver_options);
+        return call_user_func_array([$this->pdo, 'prepare'], func_get_args());
     }
 
 
@@ -220,9 +219,6 @@ class PDO extends \PDO
      */
     public function exec($statement)
     {
-        $parser = new PHPSQLParser();
-        $parsed = $parser->parse($statement);
-
         return $this->pdo->exec($statement);
     }
 
@@ -252,11 +248,11 @@ class PDO extends \PDO
      */
     public function query(
         $statement,
-        $mode = PDO::ATTR_DEFAULT_FETCH_MODE, $arg3 = null,
-        /** @noinspection PhpSignatureMismatchDuringInheritanceInspection */
+        $mode = PDO::ATTR_DEFAULT_FETCH_MODE,
+        $arg3 = null, /** @noinspection PhpSignatureMismatchDuringInheritanceInspection */
         $ctorargs = []
     ) {
-        return $this->pdo->query($statement, $mode, $arg3, $ctorargs);
+        return call_user_func_array([$this->pdo, 'query'], func_get_args());
     }
 
     /**
@@ -284,7 +280,7 @@ class PDO extends \PDO
      */
     public function lastInsertId($name = null)
     {
-        return $this->pdo->lastInsertId($name);
+        return call_user_func_array([$this->pdo, 'lastInsertId'], func_get_args());
     }
 
     /**
@@ -406,6 +402,6 @@ class PDO extends \PDO
      */
     public function quote($string, $parameter_type = PDO::PARAM_STR)
     {
-        return $this->pdo->quote($string, $parameter_type);
+        return call_user_func_array([$this->pdo, 'quote'], func_get_args());
     }
 }
