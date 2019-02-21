@@ -14,5 +14,6 @@
 !/.idea/sqldialects.xml
 !/.idea/vcs.xml
 
+/.phpunit.result.cache
 /composer.lock
 /vendor
