@@ -3,13 +3,23 @@ namespace RevisionPDO\Adapter;
 
 use PDO;
 use PHPSQLParser\PHPSQLParser;
+use RevisionPDO\Interpreter;
+use RevisionPDO\Metadata;
+use RevisionPDO\Operator;
 
 class DefaultAdapter
 {
+    const DEFAULT_METADATA_TABLE = '_metadata';
+
     /**
      * @var \PDO
      */
     protected $pdo;
+
+    /**
+     * @var \RevisionPDO\Operator
+     */
+    protected $operator;
 
     /**
      * @var \PHPSQLParser\PHPSQLParser
@@ -17,13 +27,52 @@ class DefaultAdapter
     protected $sqlParser;
 
     /**
-     * @param \PDO                       $pdo
-     * @param \PHPSQLParser\PHPSQLParser $sqlParser
+     * @var int
      */
-    public function __construct(PDO $pdo, PHPSQLParser $sqlParser)
+    protected $metadataEnabled = 0;
+
+    /**
+     * @var string
+     */
+    protected $metadataTable = self::DEFAULT_METADATA_TABLE;
+
+    /**
+     * @param  \PDO                        $pdo
+     * @param  \RevisionPDO\Operator       $operator
+     * @param  \PHPSQLParser\PHPSQLParser  $sqlParser
+     */
+    public function __construct(PDO $pdo, Operator $operator, PHPSQLParser $sqlParser)
     {
-        $this->pdo       = $pdo;
-        $this->sqlParser = $sqlParser;
+        $this->pdo           = $pdo;
+        $this->operator      = $operator;
+        $this->sqlParser     = $sqlParser;
+        $this->metadataTable = static::DEFAULT_METADATA_TABLE;
+    }
+
+    public function enableMetadata()
+    {
+        $this->metadataEnabled++;
+    }
+
+    public function disableMetadata()
+    {
+        $this->metadataEnabled--;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isMetadataEnabled()
+    {
+        return $this->metadataEnabled > 0;
+    }
+
+    /**
+     * @param string $metadataTable
+     */
+    public function setMetadataTable($metadataTable)
+    {
+        $this->metadataTable = $metadataTable;
     }
 
     /**
@@ -142,7 +191,7 @@ class DefaultAdapter
      *
      * @link http://php.net/manual/en/pdo.exec.php
      *
-     * @param  string  $statement  The SQL statement to prepare and execute.
+     * @param  string $statement   The SQL statement to prepare and execute.
      *                             Data inside the query should be properly escaped.
      *
      * @return int     PDO::exec() returns the number of rows that were modified or deleted by the SQL
@@ -158,8 +207,24 @@ class DefaultAdapter
      */
     public function exec($statement)
     {
-        $metadata = $this->sqlParser->parse($statement, true);
+        if ($this->metadataEnabled > 0) {
+            $parsed       = $this->sqlParser->parse($statement, true);
+            $interpreter  = new Interpreter($parsed);
+            $interpreters = $interpreter->flatten();
 
+            foreach ($interpreters as $interpreter) {
+                try {
+                    $metadata = new Metadata($interpreter->getOperation(), $interpreter->getTables(), $this->operator);
+                    $this->saveMetadata($metadata);
+                } catch (\Exception $e) {
+                    trigger_error(
+                        "Unable to save Metadata for statement '{$statement}' with driver " .
+                        "'{$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME)}'",
+                        E_USER_WARNING
+                    );
+                }
+            }
+        }
 
         return $this->pdo->exec($statement);
     }
@@ -302,5 +367,37 @@ class DefaultAdapter
     public function quote($string, $parameter_type = PDO::PARAM_STR)
     {
         return call_user_func_array(array($this->pdo, 'quote'), func_get_args());
+    }
+
+    /**
+     * @param \RevisionPDO\Metadata $metadata
+     */
+    protected function saveMetadata(Metadata $metadata)
+    {
+        $this->insert(
+            $this->metadataTable,
+            array(
+
+            )
+        );
+    }
+
+    /**
+     * Simple insert without identifier quoting.
+     *
+     * @param $table
+     * @param $data
+     */
+    protected function insert($table, array $data)
+    {
+        $params = array();
+        foreach ($data as $key => $value) {
+            $params[":{$key}"] = $value;
+        }
+
+        $sql  = "INSERT INTO {$table} (" . implode(', ', array_keys($data)) . ") " .
+                'VALUES (' . implode(', ', array_keys($params)) . ')';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
     }
 }

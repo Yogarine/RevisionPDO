@@ -7,6 +7,8 @@
       <w>greenlion</w>
       <w>passwd</w>
       <w>pgsql</w>
+      <w>querier</w>
+      <w>subquery</w>
       <w>yogarine</w>
     </words>
   </dictionary>

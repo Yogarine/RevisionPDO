@@ -40,37 +40,53 @@ use RevisionPDO\Adapter\DefaultAdapter;
  */
 class PDO extends \PDO
 {
-    const ATTR_INIT_COMMAND = '__REVISION_PDO_ATTR_INIT_COMMAND';
-    const ATTR_TIME_ZONE    = '__REVISION_PDO_ATTR_TIME_ZONE';
+    const ATTR_INIT_COMMAND        = '__REVISION_PDO_ATTR_INIT_COMMAND';
+    const ATTR_TIME_ZONE           = '__REVISION_PDO_ATTR_TIME_ZONE';
+    const ATTR_METADATA_ENABLED    = '__REVISION_PDO_METADATA_ENABLED';
+    const ATTR_METADATA_TABLE      = '__REVISION_PDO_METADATA_TABLE';
+    const ATTR_OPERATOR_NAME       = '__REVISION_PDO_ATTR_OPERATOR_NAME';
+    const ATTR_OPERATOR_IP_ADDRESS = '__REVISION_PDO_ATTR_OPERATOR_IP_ADDRESS';
 
-    /** @var \RevisionPDO\Adapter\DefaultAdapter */
+    /**
+     * @var \RevisionPDO\Adapter\DefaultAdapter
+     */
     private $adapter;
 
     /**
-     * The parent is not called on purpose. We're wrapping the actual PDO, and only extending PDO to be compatible.
+     * The parent is not called on purpose. We're wrapping the actual PDO, and only extending the PDO class to be
+     * compatible.
      *
      * @noinspection PhpMissingParentConstructorInspection
      *
-     * @param  \PDO|\RevisionPDO\Adapter\DefaultAdapter|string  $adapter
-     * @param  string                                           $username
-     * @param  string                                           $passwd
-     * @param  array                                            $options
+     * @param  string | \PDO | \RevisionPDO\Adapter\DefaultAdapter  $dsn
+     * @param  string                                               $username
+     * @param  string                                               $passwd
+     * @param  array                                                $options
      */
     public function __construct(
-        $adapter,
+        $dsn,
         $username = null,
         $passwd = null,
         array $options = null
     ) {
-        if (! $adapter instanceof DefaultAdapter) {
-            if (! $adapter instanceof \PDO) {
-                $adapter = new \PDO($adapter, $username, $passwd, $options);
+        if (! $dsn instanceof DefaultAdapter) {
+            if (! $dsn instanceof \PDO) {
+                $dsn = new \PDO($dsn, $username, $passwd, $options);
             }
 
+            $operator = new Operator(
+                isset($options[self::ATTR_TIME_ZONE]) ? $options[self::ATTR_TIME_ZONE] : null,
+                isset($options[self::ATTR_OPERATOR_IP_ADDRESS]) ? $options[self::ATTR_OPERATOR_IP_ADDRESS] : null
+            );
+
             $adapterFactory = new AdapterFactory;
-            $adapter        = $adapterFactory->make($adapter);
+            $dsn = $adapterFactory->make($dsn, $operator);
         }
-        $this->adapter = $adapter;
+        $this->adapter = $dsn;
+
+        if (isset($options[self::ATTR_METADATA_ENABLED]) && $options[self::ATTR_METADATA_ENABLED]) {
+            $this->adapter->enableMetadata();
+        }
 
         if (isset($options[self::ATTR_TIME_ZONE])) {
             $this->adapter->setTimeZone($options[self::ATTR_TIME_ZONE]);
@@ -87,18 +103,18 @@ class PDO extends \PDO
      * @link http://php.net/manual/en/pdo.prepare.php
      *
      * @param  string  $statement       This must be a valid SQL statement for the target database server.
-     * @param  array   $driver_options  [optional] This array holds one or more key=&gt;value pairs to set attribute
-     *                                  values for the PDOStatement object that this method returns. You would most
-     *                                  commonly use this to set the PDO::ATTR_CURSOR value to PDO::CURSOR_SCROLL to
-     *                                  request a scrollable cursor.
+     * @param  array   $driver_options  This array holds one or more key => value pairs to set attribute values for the
+     *                                  PDOStatement object that this method returns. You would most commonly use this
+     *                                  to set the PDO::ATTR_CURSOR value to PDO::CURSOR_SCROLL to request a scrollable
+     *                                  cursor.
      *                                  Some drivers have driver specific options that may be set at prepare-time.
      *
-     * @return \PDOStatement|bool       If the database server successfully prepares the statement, PDO::prepare returns
-     *                                  a PDOStatement object.
-     *                                  If the database server cannot successfully prepare the statement, PDO::prepare
+     * @return \PDOStatement|bool       If the database server successfully prepares the statement, PDO::prepare()
+     *                                  returns a PDOStatement object.
+     *                                  If the database server cannot successfully prepare the statement, PDO::prepare()
      *                                  returns FALSE or emits PDOException (depending on error handling).
      *                                  Emulated prepared statements does not communicate with the database server so
-     *                                  PDO::prepare</b> does not check the statement.
+     *                                  PDO::prepare() does not check the statement.
      */
     public function prepare(
         $statement, /** @noinspection PhpSignatureMismatchDuringInheritanceInspection */
@@ -111,8 +127,8 @@ class PDO extends \PDO
      * Initiates a transaction.
      *
      * Turns off autocommit mode. While autocommit mode is turned off, changes made to the database via the PDO object
-     * instance are not committed until you end the transaction by calling {@link PDO::commit()}. Calling
-     * {@link PDO::rollBack()} will roll back all changes to the database and return the connection to autocommit mode.
+     * instance are not committed until you end the transaction by calling PDO::commit(). Calling PDO::rollBack() will
+     * roll back all changes to the database and return the connection to autocommit mode.
      *
      * Some databases, including MySQL, automatically issue an implicit COMMIT when a database definition language (DDL)
      * statement such as DROP TABLE or CREATE TABLE is issued within a transaction. The implicit COMMIT will prevent you
@@ -188,13 +204,13 @@ class PDO extends \PDO
      * @param  string  $statement  The SQL statement to prepare and execute.
      *                             Data inside the query should be properly escaped.
      *
-     * @return int     PDO::exec() returns the number of rows that were modified or deleted by the SQL
-     *                 statement you issued. If no rows were affected, PDO::exec returns 0.
-     *                 This function may return Boolean FALSE, but may also return a non-Boolean value which
-     *                 evaluates to FALSE</b>. Please read the section on Booleans for more information.
-     *                 Use the === operator for testing the return value of this function.
-     *                 The following example incorrectly relies on the return value of PDO::exec(), wherein
-     *                 a statement that affected 0 rows results in a call to die():
+     * @return int     PDO::exec() returns the number of rows that were modified or deleted by the SQL statement you
+     *                 issued. If no rows were affected, PDO::exec returns 0.
+     *                 This function may return Boolean FALSE, but may also return a non-Boolean value which evaluates
+     *                 to FALSE. Please read the section on Booleans for more information. Use the === operator for
+     *                 testing the return value of this function.
+     *                 The following example incorrectly relies on the return value of PDO::exec(), wherein a statement
+     *                 that affected 0 rows results in a call to die():
      *                 <code>
      *                     $db->exec() or die(print_r($db->errorInfo(), true));
      *                 </code>
