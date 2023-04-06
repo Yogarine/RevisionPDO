@@ -31,7 +31,7 @@
 
 namespace RevisionPDO;
 
-use PHPSQLParser\PHPSQLParser;
+use PDOStatement;
 
 /**
  * @author Alwin Garside <alwin@garsi.de>
@@ -39,20 +39,23 @@ use PHPSQLParser\PHPSQLParser;
  */
 class PDO extends \PDO
 {
-    const ATTR_INIT_COMMAND = '__REVISION_PDO_ATTR_INIT_COMMAND';
-    const ATTR_TIME_ZONE    = '__REVISION_PDO_ATTR_TIME_ZONE';
+    public const ATTR_INIT_COMMAND = '__REVISION_PDO_ATTR_INIT_COMMAND';
+    public const ATTR_TIME_ZONE    = '__REVISION_PDO_ATTR_TIME_ZONE';
 
     /** @var \PDO */
-    private $pdo;
+    private \PDO $pdo;
 
     /** @var string */
-    private $driver;
+    private mixed $driver;
 
     /**
      * @param \PDO|string $dsnOrPDO
      * @param string      $username [optional]
      * @param string      $passwd   [optional]
-     * @param array       $options  [optional]
+     * @param array|null  $options  [optional]
+     *
+     * @noinspection MagicMethodsValidityInspection
+     * @noinspection PhpMissingParentConstructorInspection
      */
     public function __construct($dsnOrPDO, $username = null, $passwd = null, array $options = null)
     {
@@ -62,7 +65,7 @@ class PDO extends \PDO
             $this->pdo = new \PDO($dsnOrPDO, $username, $passwd, $options);
         }
 
-        $this->driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $this->driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
         if (isset($options[self::ATTR_INIT_COMMAND])) {
             $this->pdo->exec($options[self::ATTR_INIT_COMMAND]);
@@ -106,10 +109,7 @@ class PDO extends \PDO
      *                               Emulated prepared statements does not communicate with the database server so
      *                               PDO::prepare</b> does not check the statement.
      */
-    public function prepare(
-        $statement, /** @noinspection PhpSignatureMismatchDuringInheritanceInspection */
-        $driver_options = []
-    ) {
+    public function prepare($statement, $driver_options = []): PDOStatement|false {
         return call_user_func_array([$this->pdo, 'prepare'], func_get_args());
     }
 
@@ -138,7 +138,7 @@ class PDO extends \PDO
      * <b>Note</b>: An exception is raised even when the <b>PDO::ATTR_ERRMODE</b>
      * attribute is not <b>PDO::ERRMODE_EXCEPTION</b>.
      */
-    public function beginTransaction()
+    public function beginTransaction(): bool
     {
         return $this->pdo->beginTransaction();
     }
@@ -149,7 +149,7 @@ class PDO extends \PDO
      * @link http://php.net/manual/en/pdo.commit.php
      * @return bool <b>TRUE</b> on success or <b>FALSE</b> on failure.
      */
-    public function commit()
+    public function commit(): bool
     {
         return $this->pdo->commit();
     }
@@ -160,7 +160,7 @@ class PDO extends \PDO
      * @link http://php.net/manual/en/pdo.rollback.php
      * @return bool <b>TRUE</b> on success or <b>FALSE</b> on failure.
      */
-    public function rollBack()
+    public function rollBack(): bool
     {
         return $this->pdo->rollBack();
     }
@@ -171,7 +171,7 @@ class PDO extends \PDO
      * @link http://php.net/manual/en/pdo.intransaction.php
      * @return bool <b>TRUE</b> if a transaction is currently active, and <b>FALSE</b> if not.
      */
-    public function inTransaction()
+    public function inTransaction(): bool
     {
         return $this->pdo->inTransaction();
     }
@@ -184,7 +184,7 @@ class PDO extends \PDO
      * @param mixed $value
      * @return bool <b>TRUE</b> on success or <b>FALSE</b> on failure.
      */
-    public function setAttribute($attribute, $value)
+    public function setAttribute($attribute, $value): bool
     {
         return $this->pdo->setAttribute($attribute, $value);
     }
@@ -199,7 +199,7 @@ class PDO extends \PDO
      * <p>
      * Data inside the query should be properly escaped.
      * </p>
-     * @return int <b>PDO::exec</b> returns the number of rows that were modified
+     * @return int|false <b>PDO::exec</b> returns the number of rows that were modified
      * or deleted by the SQL statement you issued. If no rows were affected,
      * <b>PDO::exec</b> returns 0.
      * </p>
@@ -217,7 +217,7 @@ class PDO extends \PDO
      * $db->exec() or die(print_r($db->errorInfo(), true));
      * </code>
      */
-    public function exec($statement)
+    public function exec($statement): int|false
     {
         return $this->pdo->exec($statement);
     }
@@ -235,23 +235,15 @@ class PDO extends \PDO
      * @param int $mode <p>
      * The fetch mode must be one of the PDO::FETCH_* constants.
      * </p>
-     * @param mixed $arg3 <p>
+     * @param mixed $fetchModeArgs <p>
      * The second and following parameters are the same as the parameters for PDOStatement::setFetchMode.
      * </p>
-     * @param array $ctorargs [optional] <p>
-     * Arguments of custom class constructor when the <i>mode</i>
-     * parameter is set to <b>PDO::FETCH_CLASS</b>.
-     * </p>
-     * @return \PDOStatement|bool <b>PDO::query</b> returns a PDOStatement object, or <b>FALSE</b>
+     * @return \PDOStatement|false <b>PDO::query</b> returns a PDOStatement object, or <b>FALSE</b>
      * on failure.
      * @see PDOStatement::setFetchMode For a full description of the second and following parameters.
      */
-    public function query(
-        $statement,
-        $mode = PDO::ATTR_DEFAULT_FETCH_MODE,
-        $arg3 = null, /** @noinspection PhpSignatureMismatchDuringInheritanceInspection */
-        $ctorargs = []
-    ) {
+    public function query($statement, $mode = \PDO::ATTR_DEFAULT_FETCH_MODE, ...$fetchModeArgs): false|PDOStatement
+    {
         return call_user_func_array([$this->pdo, 'query'], func_get_args());
     }
 
@@ -262,7 +254,7 @@ class PDO extends \PDO
      * @param string $name [optional] <p>
      * Name of the sequence object from which the ID should be returned.
      * </p>
-     * @return string If a sequence name was not specified for the <i>name</i>
+     * @return string|false If a sequence name was not specified for the <i>name</i>
      * parameter, <b>PDO::lastInsertId</b> returns a
      * string representing the row ID of the last row that was inserted into
      * the database.
@@ -278,7 +270,7 @@ class PDO extends \PDO
      * <b>PDO::lastInsertId</b> triggers an
      * IM001 SQLSTATE.
      */
-    public function lastInsertId($name = null)
+    public function lastInsertId($name = null): string|false
     {
         return call_user_func_array([$this->pdo, 'lastInsertId'], func_get_args());
     }
@@ -287,7 +279,7 @@ class PDO extends \PDO
      * (PHP 5 &gt;= 5.1.0, PHP 7, PECL pdo &gt;= 0.1.0)<br/>
      * Fetch the SQLSTATE associated with the last operation on the database handle
      * @link http://php.net/manual/en/pdo.errorcode.php
-     * @return mixed an SQLSTATE, a five characters alphanumeric identifier defined in
+     * @return string|null an SQLSTATE, a five characters alphanumeric identifier defined in
      * the ANSI SQL-92 standard. Briefly, an SQLSTATE consists of a
      * two characters class value followed by a three characters subclass value. A
      * class value of 01 indicates a warning and is accompanied by a return code
@@ -309,7 +301,7 @@ class PDO extends \PDO
      * <p>
      * Returns <b>NULL</b> if no operation has been run on the database handle.
      */
-    public function errorCode()
+    public function errorCode(): ?string
     {
         return $this->pdo->errorCode();
     }
@@ -353,7 +345,7 @@ class PDO extends \PDO
      * <b>PDOStatement::errorInfo</b> to return the error
      * information for an operation performed on a particular statement handle.
      */
-    public function errorInfo()
+    public function errorInfo(): array
     {
         return $this->pdo->errorInfo();
     }
@@ -381,7 +373,7 @@ class PDO extends \PDO
      * @return mixed A successful call returns the value of the requested PDO attribute.
      * An unsuccessful call returns null.
      */
-    public function getAttribute($attribute)
+    public function getAttribute($attribute): mixed
     {
         return $this->pdo->getAttribute($attribute);
     }
@@ -396,11 +388,11 @@ class PDO extends \PDO
      * @param int $parameter_type [optional] <p>
      * Provides a data type hint for drivers that have alternate quoting styles.
      * </p>
-     * @return string a quoted string that is theoretically safe to pass into an
+     * @return string|false a quoted string that is theoretically safe to pass into an
      * SQL statement. Returns <b>FALSE</b> if the driver does not support quoting in
      * this way.
      */
-    public function quote($string, $parameter_type = PDO::PARAM_STR)
+    public function quote($string, $parameter_type = \PDO::PARAM_STR): string|false
     {
         return call_user_func_array([$this->pdo, 'quote'], func_get_args());
     }

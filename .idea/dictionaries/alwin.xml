@@ -2,6 +2,7 @@
   <dictionary name="alwin">
     <words>
       <w>castable</w>
+      <w>errmode</w>
       <w>passwd</w>
       <w>pgsql</w>
       <w>yogarine</w>
